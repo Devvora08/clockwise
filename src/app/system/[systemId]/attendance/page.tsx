@@ -6,11 +6,12 @@ import { auth } from '@clerk/nextjs/server';
 import { Check, X, Clock } from 'lucide-react';
 
 interface AttendancePageProps {
-  params: { systemId: string };
+   params: Promise<{ systemId: string }>;
 }
 
 export default async function AttendancePage({ params }: AttendancePageProps) {
-  const role = await fetchRole(params.systemId);
+  const {systemId} = await params;
+  const role = await fetchRole(systemId);
 
   const { userId } = await auth();
 
@@ -18,12 +19,12 @@ export default async function AttendancePage({ params }: AttendancePageProps) {
     return <div>Please login to access attendance.</div>;
   }
 
-  const data = await getAllEmployeeAttendance(params.systemId)
+  const data = await getAllEmployeeAttendance(systemId)
 
   if (role === "Admin") {
     return (
       <div className="p-6">
-        <AdminNavbar systemId={params.systemId} />
+        <AdminNavbar systemId={systemId} />
         <h2 className="text-2xl font-bold mb-6">Employee Attendance Overview</h2>
 
         <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -84,7 +85,7 @@ export default async function AttendancePage({ params }: AttendancePageProps) {
   }
 
 
-  const attendanceData = await getUserAttendance(userId, params.systemId);
+  const attendanceData = await getUserAttendance(userId, systemId);
 
-  return <AttendanceClient systemId={params.systemId} attendanceData={attendanceData} />;
+  return <AttendanceClient systemId={systemId} attendanceData={attendanceData} />;
 }
