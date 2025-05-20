@@ -6,11 +6,11 @@ import EmployeeWorkHours from "@/modules/employee/components/employee-work-hours
 import Link from "next/link";
 
 interface PageProps {
-  params: { systemId: string };
+ params: Promise<{ systemId: string }>;
 }
 
 export default async function Page({ params }: PageProps) {
-  const { systemId } = params;
+  const { systemId } = await params;
 
   const user = await fetchUser(systemId);
   const role = await fetchRole(systemId);
