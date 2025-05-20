@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid()) // Unique ID for the user
+  email     String   @unique
+  name      String?
+  imageUrl  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  systems UserSystem[] // Links to the systems the user is part of
+  invites Invite[]
+  admin   Admin? // Optional relation (if user is an admin)
+
+  @@index([email]) // Index on email for quick lookups
+}
+
+model Admin {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  system System? // Now one-to-one relation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model System {
+  id      String @id @default(uuid())
+  name    String
+  adminId String @unique // One-to-one link to Admin
+  admin   Admin  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  users   UserSystem[]
+  invites Invite[]
+
+  bannerUrl String?
+  passkey   Int
+  address   String
+  latitude  Float
+  longitude Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([adminId])
+}
+
+model UserSystem {
+  userId   String
+  systemId String
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  system      System       @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  attendances Attendance[] @relation("UserSystemAttendance")
+
+  role               String
+  workHours          Int       @default(0)
+  workHoursStartedAt DateTime?
+
+  @@id([userId, systemId])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Invite {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  systemId String
+  system   System @relation(fields: [systemId], references: [id], onDelete: Cascade)
+
+  status InviteStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, systemId]) // Prevent duplicate invites from same user to same system
+}
+
+model Attendance {
+  id         String    @id @default(uuid())
+  userId     String
+  systemId   String
+  date       DateTime
+  startTime  DateTime?
+  pauseTimes Json?
+  endTime    DateTime?
+  status     String
+
+  userSystem UserSystem @relation("UserSystemAttendance", fields: [userId, systemId], references: [userId, systemId], onDelete: Cascade)
+
+  @@unique([userId, systemId, date])
+}
